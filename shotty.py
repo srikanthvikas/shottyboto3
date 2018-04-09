@@ -16,8 +16,76 @@ def filter_instances(project):
         return instances
 
 @click.group()
+def cli():
+    """Shotty manages volumes and instances"""
+
+@cli.group('snapshots')
+def snapshots():
+    """Commands for volumes"""
+
+@snapshots.command('list')
+@click.option('--project',default=None,
+    help="Only snapshots for Project (tag Project:<name>)")
+
+def list_snapshots(project):
+    "List Ec2 Snapshots"
+    instances = filter_instances(project)
+
+    for k in instances:
+        for v in k.volumes.all():
+            for j in v.snapshots.all():
+                print(", ". join((
+                j.id,
+                j.state,
+                j.progress,
+                j.start_time.strftime("%c"),
+                v.id,
+                k.id,
+                v.state
+                )))
+    return
+
+@cli.group('volumes')
+def volumes():
+    """Commands for volumes"""
+
+@volumes.command('list')
+@click.option('--project',default=None,
+    help="Only instances for Project (tag Project:<name>)")
+
+def list_volumes(project):
+    "List Ec2 Volumes"
+    instances = filter_instances(project)
+
+    for k in instances:
+        for v in k.volumes.all():
+            print(", ". join((
+            v.id,
+            k.id,
+            v.state,
+            str(v.size)+" GiB",
+            v.encrypted and "Encrypted" or "Not Encrypted"
+            )))
+    return
+
+
+@cli.group('instances')
 def instances():
     """Commands for instances"""
+
+@instances.command('snapshot',
+    help="Only instances for Project (tag Project: <name>)")
+
+def create_snapshots(project):
+    "Create cnapshot for EC2 instances"
+
+    instances=filter_instances(project)
+
+    for i in instances:
+        for v in volumes.all():
+            print("Creating Snapshot of {0}",format(v.id))
+            v.create_snapshot(Description="Created by Shotty program")
+    return
 
 @instances.command('list')
 @click.option('--project',default=None,
@@ -67,4 +135,4 @@ def stop_instances(project):
 
 
 if __name__=='__main__':
-    instances()
+    cli()
