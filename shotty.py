@@ -34,7 +34,7 @@ def list_snapshots(project):
     for k in instances:
         for v in k.volumes.all():
             for j in v.snapshots.all():
-                print(", ". join((
+                    print(", ". join((
                 j.id,
                 j.state,
                 j.progress,
@@ -75,16 +75,27 @@ def instances():
 
 @instances.command('snapshot',
     help="Only instances for Project (tag Project: <name>)")
+@click.option('--project',default=None,
+    help="Only instances for Project (tag Project:<name>)")
 
 def create_snapshots(project):
-    "Create cnapshot for EC2 instances"
+    "Create snapshot for EC2 instances"
 
     instances=filter_instances(project)
 
     for i in instances:
-        for v in volumes.all():
+        print("Stopping {0}... ".format(i.id))
+        i.stop()
+        i.wait_until_stopped()
+
+        for v in i.volumes.all():
             print("Creating Snapshot of {0}",format(v.id))
             v.create_snapshot(Description="Created by Shotty program")
+        print("Starting {0}...".format(i.id))
+        i.start()
+        i.wait_until_running()
+
+        print("Job's Done")
     return
 
 @instances.command('list')
